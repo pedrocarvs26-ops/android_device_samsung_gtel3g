@@ -1,0 +1,45 @@
+From: pedro <pedrocarvs26-ops@users.noreply.github.com>
+Date: Tue, 15 Sep 2026 16:00:00 +0000
+Subject: [PATCH] init: let the vendor init library replace the weak stub
+
+TARGET_INIT_VENDOR_LIB does not work.  libinit compiles the weak
+vendor_load_properties() stub from vendor_init.cpp into itself and pulls
+the vendor library in with whole_static_libs, so libinit.a ends up
+holding two definitions of the symbol.  Soong archives the module's own
+objects first and appends the whole-static-libs members afterwards:
+
+  rm -f $out && $arCmd $arObjFlags $out $arObjs \
+             && $arCmd $arLibFlags $out $arLibs
+
+so vendor_init.o precedes the vendor library's object in the archive.
+When the linker resolves the reference from property_service.cpp it
+fetches the first archive member that defines the symbol, and a weak
+definition is still a definition, so the stub wins and the vendor code
+is never pulled in at all.  It is silent: the build succeeds, init
+runs, and none of the vendor properties are ever set.
+
+  $ ar crsD libinit.a vendor_init.o property_service.o init_sec.o
+  $ clang++ main.o libinit.a -o t && ./t
+  STUB
+  $ ar crsD libinit.a init_sec.o vendor_init.o property_service.o
+  $ clang++ main.o libinit.a -o t && ./t
+  INIT_SEC
+
+Drop the stub from libinit when a vendor library is configured, which
+leaves exactly one definition and makes the override deterministic
+rather than dependent on archive order.
+---
+ init/Android.bp | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/init/Android.bp b/init/Android.bp
+--- a/init/Android.bp
++++ b/init/Android.bp
+@@ -156,6 +156,7 @@
+     product_variables: {
+         lineage: {
+             target_init_vendor_lib: {
++                exclude_srcs: ["vendor_init.cpp"],
+                 whole_static_libs: ["%s"],
+             },
+         },

@@ -39,5 +39,7 @@ apply_series frameworks/native frameworks_native
 apply_series hardware/interfaces hardware_interfaces
 apply_series packages/apps/Settings packages_apps_Settings
 apply_series packages/providers/MediaProvider packages_providers_MediaProvider
+apply_series system/core system_core
+apply_series vendor/lineage vendor_lineage
 
 echo "All gtel3g source patches applied."

@@ -43,6 +43,12 @@ BOARD_CACHEIMAGE_FILE_SYSTEM_TYPE := ext4
 BOARD_FLASH_BLOCK_SIZE := 131072
 TARGET_USERIMAGES_USE_EXT4 := true
 
+# fstab.sc8830 mounts /efs and /productinfo, and fs_mgr does not create mount
+# points - the directory has to already exist or mount() returns ENOENT.
+# Neither is in the fixed list system/core/rootdir/Android.mk creates, so both
+# mounts have been failing since this tree was first built.
+BOARD_ROOT_EXTRA_FOLDERS := efs productinfo
+
 # Camera HAL1 hack
 TARGET_HAS_LEGACY_CAMERA_HAL1 := true
 
@@ -50,7 +56,14 @@ TARGET_HAS_LEGACY_CAMERA_HAL1 := true
 TARGET_USES_SPRD_LEGACY_CAMERA_WRAPPER := true
 
 # Legacy SPRD gralloc camera buffer usage
-TARGET_ADDITIONAL_GRALLOC_10_USAGE_BITS := 0x04000000
+# 0x04000400 covers the display/GSP path. Video playback additionally needs
+# bit 13 (0x2000): the SurfaceView for video requests usage 0x2933, and the
+# Gralloc2 legacy mapper rejects any descriptor carrying a bit outside its
+# whitelist with "buffer descriptor contains invalid usage bits 0x2000" and then
+# fails the allocation with -EINVAL/-ENOMEM, so the decoder never gets an output
+# buffer and the screen stays black. The QCOM config (BoardConfigQcom.mk) adds
+# (1 << 13) for the same reason.
+TARGET_ADDITIONAL_GRALLOC_10_USAGE_BITS := 0x04002400
 
 # WiFi
 BOARD_WLAN_DEVICE := bcmdhd

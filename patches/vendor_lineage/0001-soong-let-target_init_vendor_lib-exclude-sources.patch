@@ -1,0 +1,28 @@
+From: pedro <pedrocarvs26-ops@users.noreply.github.com>
+Date: Tue, 15 Sep 2026 16:00:00 +0000
+Subject: [PATCH] soong: let target_init_vendor_lib exclude sources
+
+The vendor init library cannot actually override
+vendor_load_properties() while libinit still compiles the weak stub
+next to it, because the two definitions land in the same archive and
+the linker takes whichever member comes first.  Allow the Android.bp
+side to drop the stub from libinit's sources when the variable is set.
+
+exclude_srcs is already part of several AOSP product variables
+(Product_is_iot, Arc), so nothing else is needed to support it.
+---
+ build/soong/android/variable.go | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/build/soong/android/variable.go b/build/soong/android/variable.go
+--- a/build/soong/android/variable.go
++++ b/build/soong/android/variable.go
+@@ -39,6 +39,7 @@
+ 		Cppflags []string
+ 	}
+ 	Target_init_vendor_lib struct {
++		Exclude_srcs      []string
+ 		Whole_static_libs []string
+ 	}
+ 	Target_needs_netd_direct_connect_rule struct {
+

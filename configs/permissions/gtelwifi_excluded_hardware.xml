@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     SM-T560 (Wi-Fi only).  full_base_telephony.mk copies
+     android.hardware.telephony.gsm.xml into /vendor/etc/permissions no matter
+     what, so the telephony features are retracted here instead.
+     SystemConfig.readPermissionsFromXml() calls removeFeature() for every
+     <unavailable-feature>, so this works regardless of parse order.
+-->
+<permissions>
+    <unavailable-feature name="android.hardware.sensor.compass" />
+    <unavailable-feature name="android.hardware.telephony" />
+    <unavailable-feature name="android.hardware.telephony.gsm" />
+</permissions>
