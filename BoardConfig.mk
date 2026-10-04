@@ -27,13 +27,16 @@ TARGET_PROCESS_SDK_VERSION_OVERRIDE += \
     /system/vendor/bin/hw/android.hardware.camera.provider@2.4-service=22 \
     /system/vendor/bin/hw/android.hardware.media.omx@1.0-service=22
 
-# Device-specific VINTF and SELinux policy
-DEVICE_MANIFEST_FILE += device/samsung/gtel3g/configs/manifest.xml
+DEVICE_MANIFEST_FILE := device/samsung/gtel3g/configs/manifest.radio.xml
 
 # Bootloader
 TARGET_BOOTLOADER_BOARD_NAME := SC7730SE
 
 # Partitions
+# 18.1 port: keep the 17.1 layout. The ramdisk carries the static first stage
+# init and fstab; init mounts SYSTEM and switches root to it. The root dir is
+# always staged into system.img, so the mount points only need extra folders.
+BOARD_ROOT_EXTRA_FOLDERS := efs productinfo
 BOARD_BOOTIMAGE_PARTITION_SIZE := 16777216
 BOARD_RECOVERYIMAGE_PARTITION_SIZE := 16777216
 BOARD_SYSTEMIMAGE_PARTITION_SIZE := 1572864000
@@ -49,8 +52,9 @@ TARGET_HAS_LEGACY_CAMERA_HAL1 := true
 # Legacy SPRD camera HAL compatibility
 TARGET_USES_SPRD_LEGACY_CAMERA_WRAPPER := true
 
-# Legacy SPRD gralloc camera buffer usage
-TARGET_ADDITIONAL_GRALLOC_10_USAGE_BITS := 0x04000000
+# Legacy SPRD gralloc camera/display/video buffer usage
+# 0x04000000 (camera) + 0x00000400 (display bit 10) + 0x00002000 (video SurfaceView bit 13)
+TARGET_ADDITIONAL_GRALLOC_10_USAGE_BITS := 0x04002400
 
 # WiFi
 BOARD_WLAN_DEVICE := bcmdhd
