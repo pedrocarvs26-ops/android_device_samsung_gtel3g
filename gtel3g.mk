@@ -21,7 +21,13 @@ GTEL_RIL ?= true
 
 # Telephony base
 ifeq ($(GTEL_RIL),true)
+ifeq ($(PRODUCT_TYPE),go)
+$(call inherit-product, $(SRC_TARGET_DIR)/product/aosp_base.mk)
+$(call inherit-product, $(SRC_TARGET_DIR)/product/telephony.mk)
+PRODUCT_PROPERTY_OVERRIDES += keyguard.no_require_sim=true
+else
 $(call inherit-product, $(SRC_TARGET_DIR)/product/full_base_telephony.mk)
+endif
 else
 $(call inherit-product, $(SRC_TARGET_DIR)/product/aosp_base.mk)
 ifneq ($(PRODUCT_TYPE),go)

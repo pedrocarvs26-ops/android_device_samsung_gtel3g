@@ -4,6 +4,9 @@ $(call inherit-product, vendor/lineage/config/telephony.mk)
 # Release name
 PRODUCT_RELEASE_NAME := gtel3g
 
+# Android Go Edition identifier
+PRODUCT_TYPE := go
+
 # Inherit some common Lineage stuff.
 $(call inherit-product, vendor/lineage/config/common_full_phone.mk)
 
