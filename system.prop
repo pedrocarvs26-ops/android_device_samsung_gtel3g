@@ -41,6 +41,6 @@ ro.product.hardware=PIKEAYOUNG2DTV_V1.0.0
 ro.config.swappiness=100
 ro.config.zram.disksize=512M
 
-# Multi-user
-fw.max_users=3
-fw.show_multiuserui=1
+# Multi-user (disabled for Go / Low RAM)
+fw.max_users=1
+fw.show_multiuserui=0

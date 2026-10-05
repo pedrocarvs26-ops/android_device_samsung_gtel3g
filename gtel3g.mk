@@ -24,8 +24,10 @@ ifeq ($(GTEL_RIL),true)
 $(call inherit-product, $(SRC_TARGET_DIR)/product/full_base_telephony.mk)
 else
 $(call inherit-product, $(SRC_TARGET_DIR)/product/aosp_base.mk)
+ifneq ($(PRODUCT_TYPE),go)
 PRODUCT_COPY_FILES += \
 	frameworks/native/data/etc/handheld_core_hardware.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/handheld_core_hardware.xml
+endif
 endif
 
 # Overlays
