@@ -78,6 +78,11 @@ TARGET_NEEDS_NETD_DIRECT_CONNECT_RULE := true
 TARGET_KERNEL_CONFIG := gtel3g_defconfig
 TARGET_KERNEL_SOURCE := kernel/samsung/gtel3g
 
+# O kernel e' 3.10 com flags ARM que o clang nao conhece (-mapcs,
+# -mno-sched-prolog, -mno-thumb-interwork). Compilar com clang quebra em
+# scripts/mod/empty.o, entao forçamos o toolchain gcc.
+TARGET_KERNEL_CLANG_COMPILE := false
+
 # Resolution
 TARGET_SCREEN_HEIGHT := 1280
 TARGET_SCREEN_WIDTH := 800
