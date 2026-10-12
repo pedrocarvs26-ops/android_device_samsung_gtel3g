@@ -109,3 +109,8 @@ TARGET_LD_SHIM_LIBS += \
 
 # Recovery
 TARGET_RECOVERY_FSTAB := device/samsung/gtel3g/rootdir/fstab.sc8830
+
+# freeBuffer(size_t) gera assinatura diferente da que o libbinder.arm32.map
+# exige (PKyj vs PKjj), quebrando o link do libbinder. O aviso de
+# -Wint-to-void-pointer-cast no host foi resolvido com -Wno-error no
+# Android.bp do libbinder.

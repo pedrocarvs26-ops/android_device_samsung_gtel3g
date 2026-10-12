@@ -160,10 +160,3 @@ PRODUCT_COPY_FILES += \
 PRODUCT_PACKAGES += \
     # 18.1 port, TEMP: sprd_charger static link needs R rework; charger mode only.
     #sprd_charger
-
-# O produto herda binder32bit=true do vendor/lineage, que define
-# BINDER_IPC_32BIT=1 tambem no build host (x86_64). Aí binder_size_t vira
-# __u32 e os casts (void*)btd->data_size do IPCThreadState estouram o
-# -Werror=int-to-pointer-cast. O aparelho e' 32-bit, então o binder de 64-bit
-# nao traz ganho nenhum: desligamos.
-binder32bit := false
