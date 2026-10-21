@@ -1,0 +1,201 @@
+diff --git a/init/reboot.cpp b/init/reboot.cpp
+index 0e59ae036..109daf27c 100644
+--- a/init/reboot.cpp
++++ b/init/reboot.cpp
+@@ -1027,8 +1027,7 @@ void HandlePowerctlMessage(const std::string& command) {
+                 if (!CommandIsPresent(&boot)) {
+                     strlcpy(boot.command, "boot-recovery", sizeof(boot.command));
+                     if (std::string err; !write_bootloader_message(boot, &err)) {
+-                        LOG(ERROR) << "Failed to set bootloader message: " << err;
+-                        return;
++                        LOG(ERROR) << "Failed to set bootloader message (continuing to kernel reboot target): " << err;
+                     }
+                 }
+             } else if (reboot_target == "sideload" || reboot_target == "sideload-auto-reboot" ||
+diff --git a/init/ueventd.cpp b/init/ueventd.cpp
+index 331255b1e..de6c93083 100644
+--- a/init/ueventd.cpp
++++ b/init/ueventd.cpp
+@@ -269,7 +269,7 @@ void ColdBoot::Run() {
+ 
+ static UeventdConfiguration GetConfiguration() {
+     // TODO: Remove these legacy paths once Android S is no longer supported.
+-    if (android::base::GetIntProperty("ro.product.first_api_level", 10000) <= __ANDROID_API_S__) {
++    if (true) {
+         auto hardware = android::base::GetProperty("ro.hardware", "");
+         return ParseConfig({"/system/etc/ueventd.rc", "/vendor/ueventd.rc", "/odm/ueventd.rc",
+                             "/ueventd." + hardware + ".rc"});
+diff --git a/libprocessgroup/processgroup.cpp b/libprocessgroup/processgroup.cpp
+index 2ce3fa0c7..3e40991f6 100644
+--- a/libprocessgroup/processgroup.cpp
++++ b/libprocessgroup/processgroup.cpp
+@@ -187,7 +187,7 @@ void removeAllProcessGroups() {
+     std::vector<std::string> cgroups;
+     std::string path;
+ 
+-    if (CgroupGetControllerPath(CGROUPV2_CONTROLLER_NAME, &path)) {
++    if (CgroupGetControllerPath("cpuacct", &path)) {
+         cgroups.push_back(path);
+     }
+     if (CgroupGetControllerPath("memory", &path)) {
+@@ -229,47 +229,18 @@ void removeAllProcessGroups() {
+  * transferred for the user/group passed as uid/gid before system_server can properly access them.
+  */
+ static bool MkdirAndChown(const std::string& path, mode_t mode, uid_t uid, gid_t gid) {
+-    if (mkdir(path.c_str(), mode) == -1) {
+-        if (errno == EEXIST) {
+-            // Directory already exists and permissions have been set at the time it was created
+-            return true;
+-        }
++    if (mkdir(path.c_str(), mode) == -1 && errno != EEXIST) {
+         return false;
+     }
+ 
+-    auto dir = std::unique_ptr<DIR, decltype(&closedir)>(opendir(path.c_str()), closedir);
+-
+-    if (dir == NULL) {
+-        PLOG(ERROR) << "opendir failed for " << path;
+-        goto err;
+-    }
+-
+-    struct dirent* dir_entry;
+-    while ((dir_entry = readdir(dir.get()))) {
+-        if (!strcmp("..", dir_entry->d_name)) {
+-            continue;
+-        }
+-
+-        std::string file_path = path + "/" + dir_entry->d_name;
+-
+-        if (lchown(file_path.c_str(), uid, gid) < 0) {
+-            PLOG(ERROR) << "lchown failed for " << file_path;
+-            goto err;
+-        }
+-
+-        if (fchmodat(AT_FDCWD, file_path.c_str(), mode, AT_SYMLINK_NOFOLLOW) != 0) {
+-            PLOG(ERROR) << "fchmodat failed for " << file_path;
+-            goto err;
+-        }
++    if (chown(path.c_str(), uid, gid) == -1) {
++        int saved_errno = errno;
++        rmdir(path.c_str());
++        errno = saved_errno;
++        return false;
+     }
+ 
+     return true;
+-err:
+-    int saved_errno = errno;
+-    rmdir(path.c_str());
+-    errno = saved_errno;
+-
+-    return false;
+ }
+ 
+ // Returns number of processes killed on success
+@@ -348,7 +319,7 @@ static int DoKillProcessGroupOnce(const char* cgroup, uid_t uid, int initialPid,
+ static int KillProcessGroup(uid_t uid, int initialPid, int signal, int retries,
+                             int* max_processes) {
+     std::string hierarchy_root_path;
+-    CgroupGetControllerPath(CGROUPV2_CONTROLLER_NAME, &hierarchy_root_path);
++    CgroupGetControllerPath("cpuacct", &hierarchy_root_path);
+     const char* cgroup = hierarchy_root_path.c_str();
+ 
+     std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+@@ -424,19 +395,10 @@ int killProcessGroupOnce(uid_t uid, int initialPid, int signal, int* max_process
+ static int createProcessGroupInternal(uid_t uid, int initialPid, std::string cgroup) {
+     auto uid_path = ConvertUidToPath(cgroup.c_str(), uid);
+ 
+-    struct stat cgroup_stat;
+     mode_t cgroup_mode = 0750;
+     gid_t cgroup_uid = AID_SYSTEM;
+     uid_t cgroup_gid = AID_SYSTEM;
+ 
+-    if (stat(cgroup.c_str(), &cgroup_stat) == 1) {
+-        PLOG(ERROR) << "Failed to get stats for " << cgroup;
+-    } else {
+-        cgroup_mode = cgroup_stat.st_mode;
+-        cgroup_uid = cgroup_stat.st_uid;
+-        cgroup_gid = cgroup_stat.st_gid;
+-    }
+-
+     if (!MkdirAndChown(uid_path, cgroup_mode, cgroup_uid, cgroup_gid)) {
+         PLOG(ERROR) << "Failed to make and chown " << uid_path;
+         return -errno;
+@@ -477,7 +439,7 @@ int createProcessGroup(uid_t uid, int initialPid, bool memControl) {
+         }
+     }
+ 
+-    CgroupGetControllerPath(CGROUPV2_CONTROLLER_NAME, &cgroup);
++    CgroupGetControllerPath("cpuacct", &cgroup);
+     return createProcessGroupInternal(uid, initialPid, cgroup);
+ }
+ 
+diff --git a/libprocessgroup/profiles/cgroups.json b/libprocessgroup/profiles/cgroups.json
+index 063422091..83b578828 100644
+--- a/libprocessgroup/profiles/cgroups.json
++++ b/libprocessgroup/profiles/cgroups.json
+@@ -5,7 +5,8 @@
+       "Path": "/dev/blkio",
+       "Mode": "0755",
+       "UID": "system",
+-      "GID": "system"
++      "GID": "system",
++      "Optional": true
+     },
+     {
+       "Controller": "cpu",
+@@ -14,12 +15,18 @@
+       "UID": "system",
+       "GID": "system"
+     },
++    {
++      "Controller": "cpuacct",
++      "Path": "/acct",
++      "Mode": "0555"
++    },
+     {
+       "Controller": "cpuset",
+       "Path": "/dev/cpuset",
+       "Mode": "0755",
+       "UID": "system",
+-      "GID": "system"
++      "GID": "system",
++      "Optional": true
+     },
+     {
+       "Controller": "memory",
+@@ -29,20 +36,5 @@
+       "GID": "system",
+       "Optional": true
+     }
+-  ],
+-  "Cgroups2": {
+-    "Path": "/sys/fs/cgroup",
+-    "Mode": "0755",
+-    "UID": "system",
+-    "GID": "system",
+-    "Controllers": [
+-      {
+-        "Controller": "freezer",
+-        "Path": ".",
+-        "Mode": "0755",
+-        "UID": "system",
+-        "GID": "system"
+-      }
+-    ]
+-  }
++  ]
+ }
+diff --git a/rootdir/init.rc b/rootdir/init.rc
+index 8a385595e..5984bf3d2 100644
+--- a/rootdir/init.rc
++++ b/rootdir/init.rc
+@@ -323,7 +323,7 @@ on init
+ 
+     write /proc/sys/kernel/panic_on_oops 1
+     write /proc/sys/kernel/hung_task_timeout_secs 0
+-    write /proc/cpu/alignment 4
++    write /proc/cpu/alignment 2
+ 
+     # scheduler tunables
+     # Disable auto-scaling of scheduler tunables with hotplug. The tunables

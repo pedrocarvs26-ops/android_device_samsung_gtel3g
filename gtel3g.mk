@@ -125,6 +125,7 @@ PRODUCT_PROPERTY_OVERRIDES += \
 PRODUCT_PACKAGES += \
 	Snap \
 	camera.sc8830 \
+	libexif \
 	libmemoryheapion_sprd_legacy
 
 # Sensors
@@ -156,7 +157,5 @@ PRODUCT_PACKAGES += \
 PRODUCT_COPY_FILES += \
     device/samsung/gtel3g/rootdir/fstab.sc8830:$(TARGET_COPY_OUT_RAMDISK)/fstab.sc8830
 
-# SPRD offline charger
-PRODUCT_PACKAGES += \
-    # 18.1 port, TEMP: sprd_charger static link needs R rework; charger mode only.
-    #sprd_charger
+# SPRD offline charger (disabled in 19.1)
+PRODUCT_PACKAGES += sprd_charger

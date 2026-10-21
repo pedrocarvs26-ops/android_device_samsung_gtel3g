@@ -114,3 +114,9 @@ TARGET_RECOVERY_FSTAB := device/samsung/gtel3g/rootdir/fstab.sc8830
 # exige (PKyj vs PKjj), quebrando o link do libbinder. O aviso de
 # -Wint-to-void-pointer-cast no host foi resolvido com -Wno-error no
 # Android.bp do libbinder.
+
+# O device e' A-only: nao existe /vendor nem ramdisk de modulos, entao o
+# staging de vendor (depmod_vendor) nao tem o que processar e falha com
+# "could not open modules.order". Desligamos o strip de modulos vendor e ramdisk.
+BOARD_DO_NOT_STRIP_VENDOR_MODULES := true
+BOARD_DO_NOT_STRIP_VENDOR_RAMDISK_MODULES := true

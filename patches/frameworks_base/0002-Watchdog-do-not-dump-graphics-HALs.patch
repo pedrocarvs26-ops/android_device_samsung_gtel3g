@@ -1,0 +1,15 @@
+diff --git a/services/core/java/com/android/server/Watchdog.java b/services/core/java/com/android/server/Watchdog.java
+index d10ab8e2d0dd..b178cbe36785 100644
+--- a/services/core/java/com/android/server/Watchdog.java
++++ b/services/core/java/com/android/server/Watchdog.java
+@@ -125,8 +125,8 @@ public class Watchdog {
+             "android.hardware.bluetooth@1.0::IBluetoothHci",
+             "android.hardware.camera.provider@2.4::ICameraProvider",
+             "android.hardware.gnss@1.0::IGnss",
+-            "android.hardware.graphics.allocator@2.0::IAllocator",
+-            "android.hardware.graphics.composer@2.1::IComposer",
++            // "android.hardware.graphics.allocator@2.0::IAllocator",
++            // "android.hardware.graphics.composer@2.1::IComposer",
+             "android.hardware.health@2.0::IHealth",
+             "android.hardware.light@2.0::ILight",
+             "android.hardware.media.c2@1.0::IComponentStore",

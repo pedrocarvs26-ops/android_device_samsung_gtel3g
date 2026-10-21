@@ -36,4 +36,10 @@ apply_series() {
 apply_series frameworks/base frameworks_base
 apply_series packages/providers/MediaProvider packages_providers_MediaProvider
 
+apply_series external/wpa_supplicant_8 external_wpa_supplicant_8
+apply_series system/core system_core
+apply_series frameworks/av frameworks_av
+apply_series frameworks/native frameworks_native
+apply_series system/bt system_bt
+
 echo "All gtel3g source patches applied."
