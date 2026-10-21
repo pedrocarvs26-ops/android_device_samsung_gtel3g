@@ -1,0 +1,26 @@
+diff --git a/wpa_supplicant/wpa_supplicant.c b/wpa_supplicant/wpa_supplicant.c
+index d9bf46e..abca27a 100644
+--- a/wpa_supplicant/wpa_supplicant.c
++++ b/wpa_supplicant/wpa_supplicant.c
+@@ -7542,6 +7542,8 @@ int wpas_network_disabled(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid)
+ 
+ int wpas_get_ssid_pmf(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid)
+ {
++	(void)wpa_s; (void)ssid;
++	return NO_MGMT_FRAME_PROTECTION;
+ 	if (ssid == NULL || ssid->ieee80211w == MGMT_FRAME_PROTECTION_DEFAULT) {
+ 		if (wpa_s->conf->pmf == MGMT_FRAME_PROTECTION_OPTIONAL &&
+ 		    !(wpa_s->drv_enc & WPA_DRIVER_CAPA_ENC_BIP)) {
+diff --git a/wpa_supplicant/wpa_supplicant_template.conf b/wpa_supplicant/wpa_supplicant_template.conf
+index 552477d..4ee9f5f 100644
+--- a/wpa_supplicant/wpa_supplicant_template.conf
++++ b/wpa_supplicant/wpa_supplicant_template.conf
+@@ -3,7 +3,7 @@ update_config=1
+ eapol_version=1
+ ap_scan=1
+ fast_reauth=1
+-pmf=1
++pmf=0
+ p2p_add_cli_chan=1
+ oce=1
+ wowlan_disconnect_on_deinit=1

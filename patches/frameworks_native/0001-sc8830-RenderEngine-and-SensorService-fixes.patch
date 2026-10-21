@@ -1,0 +1,24 @@
+diff --git a/services/sensorservice/SensorService.cpp b/services/sensorservice/SensorService.cpp
+index 3ca34bb..026e191 100644
+--- a/services/sensorservice/SensorService.cpp
++++ b/services/sensorservice/SensorService.cpp
+@@ -110,9 +110,16 @@ bool SensorService::initializeHmacKey() {
+         ALOGW("Unable to read HMAC key; generating new one.");
+     }
+ 
+-    if (RAND_bytes(sHmacGlobalKey, sizeof(sHmacGlobalKey)) == -1) {
+-        ALOGW("Can't generate HMAC key; dynamic sensor getId() will be wrong.");
+-        return false;
++    if (RAND_bytes(sHmacGlobalKey, sizeof(sHmacGlobalKey)) <= 0) {
++        ALOGW("Can't generate HMAC key via RAND_bytes; trying /dev/urandom directly");
++        int ufd = open("/dev/urandom", O_RDONLY | O_CLOEXEC);
++        if (ufd != -1) {
++            read(ufd, sHmacGlobalKey, sizeof(sHmacGlobalKey));
++            close(ufd);
++        } else {
++            ALOGW("Can't generate HMAC key; dynamic sensor getId() will be wrong.");
++            return false;
++        }
+     }
+ 
+     // We need to make sure this is only readable to us.

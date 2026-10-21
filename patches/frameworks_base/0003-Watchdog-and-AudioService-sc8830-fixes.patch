@@ -1,0 +1,28 @@
+diff --git a/services/core/java/com/android/server/Watchdog.java b/services/core/java/com/android/server/Watchdog.java
+index 425a0452..fa961690 100644
+--- a/services/core/java/com/android/server/Watchdog.java
++++ b/services/core/java/com/android/server/Watchdog.java
+@@ -114,8 +114,8 @@ public class Watchdog extends Thread {
+             "android.hardware.bluetooth@1.0::IBluetoothHci",
+             "android.hardware.camera.provider@2.4::ICameraProvider",
+             "android.hardware.gnss@1.0::IGnss",
+-            "android.hardware.graphics.allocator@2.0::IAllocator",
+-            "android.hardware.graphics.composer@2.1::IComposer",
++            // "android.hardware.graphics.allocator@2.0::IAllocator",
++            // "android.hardware.graphics.composer@2.1::IComposer",
+             "android.hardware.health@2.0::IHealth",
+             "android.hardware.light@2.0::ILight",
+             "android.hardware.media.c2@1.0::IComponentStore",
+diff --git a/services/core/java/com/android/server/audio/AudioService.java b/services/core/java/com/android/server/audio/AudioService.java
+index 01b4cc67..beaaab8f 100644
+--- a/services/core/java/com/android/server/audio/AudioService.java
++++ b/services/core/java/com/android/server/audio/AudioService.java
+@@ -358,7 +358,7 @@ public class AudioService extends IAudioService.Stub
+      *  STREAM_VOLUME_ALIAS_DEFAULT for other devices (e.g. tablets).*/
+     private final int[] STREAM_VOLUME_ALIAS_VOICE = new int[] {
+         AudioSystem.STREAM_VOICE_CALL,      // STREAM_VOICE_CALL
+-        AudioSystem.STREAM_RING,            // STREAM_SYSTEM
++        AudioSystem.STREAM_MUSIC,           // STREAM_SYSTEM
+         AudioSystem.STREAM_RING,            // STREAM_RING
+         AudioSystem.STREAM_MUSIC,           // STREAM_MUSIC
+         AudioSystem.STREAM_ALARM,           // STREAM_ALARM

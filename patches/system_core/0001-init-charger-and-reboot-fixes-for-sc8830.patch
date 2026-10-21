@@ -1,0 +1,27 @@
+diff --git a/init/reboot.cpp b/init/reboot.cpp
+index 2db0889..74292ce 100644
+--- a/init/reboot.cpp
++++ b/init/reboot.cpp
+@@ -1000,8 +1000,7 @@ void HandlePowerctlMessage(const std::string& command) {
+                 if (!CommandIsPresent(&boot)) {
+                     strlcpy(boot.command, "boot-recovery", sizeof(boot.command));
+                     if (std::string err; !write_bootloader_message(boot, &err)) {
+-                        LOG(ERROR) << "Failed to set bootloader message: " << err;
+-                        return;
++                        LOG(ERROR) << "Failed to set bootloader message (continuing to kernel reboot): " << err;
+                     }
+                 }
+             } else if (reboot_target == "sideload" || reboot_target == "sideload-auto-reboot" ||
+diff --git a/rootdir/init.rc b/rootdir/init.rc
+index a9af0b0..4904f10 100644
+--- a/rootdir/init.rc
++++ b/rootdir/init.rc
+@@ -226,7 +226,7 @@ on init
+ 
+     write /proc/sys/kernel/panic_on_oops 1
+     write /proc/sys/kernel/hung_task_timeout_secs 0
+-    write /proc/cpu/alignment 4
++    write /proc/cpu/alignment 2
+ 
+     # scheduler tunables
+     # Disable auto-scaling of scheduler tunables with hotplug. The tunables

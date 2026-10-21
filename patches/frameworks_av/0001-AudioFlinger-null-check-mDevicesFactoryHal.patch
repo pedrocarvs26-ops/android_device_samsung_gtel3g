@@ -1,0 +1,16 @@
+diff --git a/services/audioflinger/AudioFlinger.cpp b/services/audioflinger/AudioFlinger.cpp
+index 8b3e950..3c7be59 100644
+--- a/services/audioflinger/AudioFlinger.cpp
++++ b/services/audioflinger/AudioFlinger.cpp
+@@ -2173,6 +2173,11 @@ audio_module_handle_t AudioFlinger::loadHwModule_l(const char *name)
+ 
+     sp<DeviceHalInterface> dev;
+ 
++    if (mDevicesFactoryHal == nullptr) {
++        ALOGE("loadHwModule() mDevicesFactoryHal is null, cannot load %s", name);
++        return AUDIO_MODULE_HANDLE_NONE;
++    }
++
+     int rc = mDevicesFactoryHal->openDevice(name, &dev);
+     if (rc) {
+         ALOGE("loadHwModule() error %d loading module %s", rc, name);
