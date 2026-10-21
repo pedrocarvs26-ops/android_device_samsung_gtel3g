@@ -161,6 +161,10 @@ endif
 PRODUCT_PACKAGES += \
     fstab.sc8830
 
+# First stage init reads the fstab from the boot ramdisk before SYSTEM is mounted.
+PRODUCT_COPY_FILES += \
+    device/samsung/gtel3g/rootdir/fstab.sc8830:$(TARGET_COPY_OUT_RAMDISK)/fstab.sc8830
+
 # SPRD offline charger
 PRODUCT_PACKAGES += \
     sprd_charger

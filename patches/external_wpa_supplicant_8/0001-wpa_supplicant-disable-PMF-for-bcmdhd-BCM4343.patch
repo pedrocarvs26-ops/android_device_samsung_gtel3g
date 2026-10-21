@@ -1,0 +1,24 @@
+diff --git a/wpa_supplicant/wpa_supplicant.c b/wpa_supplicant/wpa_supplicant.c
+index 5d4adf4..512ce80 100644
+--- a/wpa_supplicant/wpa_supplicant.c
++++ b/wpa_supplicant/wpa_supplicant.c
+@@ -7010,6 +7010,8 @@ int wpas_network_disabled(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid)
+ 
+ int wpas_get_ssid_pmf(struct wpa_supplicant *wpa_s, struct wpa_ssid *ssid)
+ {
++	(void)wpa_s; (void)ssid;
++	return NO_MGMT_FRAME_PROTECTION;
+ #ifdef CONFIG_IEEE80211W
+ 	if (ssid == NULL || ssid->ieee80211w == MGMT_FRAME_PROTECTION_DEFAULT) {
+ 		if (wpa_s->conf->pmf == MGMT_FRAME_PROTECTION_OPTIONAL &&
+diff --git a/wpa_supplicant/wpa_supplicant_template.conf b/wpa_supplicant/wpa_supplicant_template.conf
+index f55227f..75ff58c 100644
+--- a/wpa_supplicant/wpa_supplicant_template.conf
++++ b/wpa_supplicant/wpa_supplicant_template.conf
+@@ -3,5 +3,5 @@ update_config=1
+ eapol_version=1
+ ap_scan=1
+ fast_reauth=1
+-pmf=1
++pmf=0
+ p2p_add_cli_chan=1

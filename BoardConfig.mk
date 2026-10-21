@@ -28,7 +28,9 @@ TARGET_PROCESS_SDK_VERSION_OVERRIDE += \
     /system/vendor/bin/hw/android.hardware.media.omx@1.0-service=22
 
 # Device-specific VINTF and SELinux policy
+ifneq ($(strip $(GTEL_RIL)),false)
 DEVICE_MANIFEST_FILE += device/samsung/gtel3g/configs/manifest.xml
+endif
 
 # Bootloader
 TARGET_BOOTLOADER_BOARD_NAME := SC7730SE

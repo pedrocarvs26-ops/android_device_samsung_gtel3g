@@ -1,0 +1,49 @@
+diff --git a/services/core/java/com/android/server/Watchdog.java b/services/core/java/com/android/server/Watchdog.java
+index 5b9c78f6..eb4dc80f 100644
+--- a/services/core/java/com/android/server/Watchdog.java
++++ b/services/core/java/com/android/server/Watchdog.java
+@@ -106,8 +106,29 @@ public class Watchdog extends Thread {
+             "android.hardware.biometrics.face@1.0::IBiometricsFace",
+             "android.hardware.bluetooth@1.0::IBluetoothHci",
+             "android.hardware.camera.provider@2.4::ICameraProvider",
+-            "android.hardware.graphics.allocator@2.0::IAllocator",
+-            "android.hardware.graphics.composer@2.1::IComposer",
++            // gtel3g: the graphics HALs are deliberately NOT dumped here.
++            //
++            // dumpStackTraces() runs crash_dump32, which PTRACE_SEIZEs every
++            // thread of the target.  On this device crash_dump32 regularly
++            // fails to finish (it gets stuck in pipe_wait and is then reaped
++            // by its own alarm(30)), and because the stop was tracer-initiated
++            // __ptrace_unlink() leaves the tracee in group-stop -- it stays
++            // "t (tracing stop)" until something sends it SIGCONT.
++            //
++            // Freezing android.hardware.graphics.composer@2.1-service is
++            // fatal: SurfaceFlinger's main thread blocks forever in
++            // executeCommands()/presentDisplay(), its binder threads pile up
++            // in getNewTexture(), and system_server's own main thread then
++            // blocks in SurfaceControl.nativeGetPhysicalDisplayIds().  That
++            // trips this very Watchdog, which dumps the HAL again, which
++            // freezes it again -- a permanent black screen with a
++            // system_server restart loop and a growing pile of unreapable
++            // crash_dump32 zombies.
++            //
++            // A diagnostic stack dump must never be able to wedge the display
++            // pipeline, so the composer and its allocator are excluded.
++            // "android.hardware.graphics.allocator@2.0::IAllocator",
++            // "android.hardware.graphics.composer@2.1::IComposer",
+             "android.hardware.health@2.0::IHealth",
+             "android.hardware.media.c2@1.0::IComponentStore",
+             "android.hardware.media.omx@1.0::IOmx",
+diff --git a/services/core/java/com/android/server/audio/AudioService.java b/services/core/java/com/android/server/audio/AudioService.java
+index 0f80050f..5c86d75d 100644
+--- a/services/core/java/com/android/server/audio/AudioService.java
++++ b/services/core/java/com/android/server/audio/AudioService.java
+@@ -358,7 +358,7 @@ public class AudioService extends IAudioService.Stub
+      *  STREAM_VOLUME_ALIAS_DEFAULT for other devices (e.g. tablets).*/
+     private final int[] STREAM_VOLUME_ALIAS_VOICE = new int[] {
+         AudioSystem.STREAM_VOICE_CALL,      // STREAM_VOICE_CALL
+-        AudioSystem.STREAM_RING,            // STREAM_SYSTEM
++        AudioSystem.STREAM_MUSIC,           // STREAM_SYSTEM
+         AudioSystem.STREAM_RING,            // STREAM_RING
+         AudioSystem.STREAM_MUSIC,           // STREAM_MUSIC
+         AudioSystem.STREAM_ALARM,           // STREAM_ALARM
