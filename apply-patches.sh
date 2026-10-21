@@ -42,4 +42,6 @@ apply_series packages/providers/MediaProvider packages_providers_MediaProvider
 apply_series system/core system_core
 apply_series vendor/lineage vendor_lineage
 
+apply_series external/wpa_supplicant_8 external_wpa_supplicant_8
+
 echo "All gtel3g source patches applied."
