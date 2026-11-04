@@ -1,0 +1,10 @@
+# Android fstab file for recovery and releasetools
+# <src>                                           <mnt_point>  <type>  <mnt_flags and options>             <fs_mgr_flags>
+
+/dev/block/platform/sprd-sdhci.3/by-name/KERNEL   /boot        emmc    defaults                            defaults
+/dev/block/platform/sprd-sdhci.3/by-name/RECOVERY /recovery    emmc    defaults                            defaults
+/dev/block/platform/sprd-sdhci.3/by-name/SYSTEM   /system      ext4    ro,barrier=1                        wait
+/dev/block/platform/sprd-sdhci.3/by-name/efs      /efs         ext4    noatime,nosuid,nodev,nomblk_io_submit,errors=remount-ro wait,check
+/dev/block/platform/sprd-sdhci.3/by-name/PRODNV   /productinfo ext4    noatime,nosuid,nodev,nomblk_io_submit,errors=remount-ro wait,check
+/dev/block/platform/sprd-sdhci.3/by-name/CACHE    /cache       ext4    noatime,nosuid,nodev,nomblk_io_submit,errors=remount-ro wait,check
+/dev/block/platform/sprd-sdhci.3/by-name/userdata /data        ext4    nosuid,nodev,noatime,noauto_da_alloc,errors=remount-ro wait,check

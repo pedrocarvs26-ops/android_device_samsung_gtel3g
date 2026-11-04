@@ -22,9 +22,7 @@ PRODUCT_MAKEFILES := \
 	$(LOCAL_DIR)/lineage_gtelwifi.mk
 
 COMMON_LUNCH_CHOICES := \
-    lineage_gtel3g-user \
-    lineage_gtel3g-userdebug \
-    lineage_gtel3g-eng \
-    lineage_gtelwifi-user \
-    lineage_gtelwifi-userdebug \
-    lineage_gtelwifi-eng
+    lineage_gtelwifi-trunk_staging-userdebug \
+    lineage_gtelwifi-bp1a-userdebug \
+    lineage_gtel3g-trunk_staging-userdebug \
+    lineage_gtel3g-bp1a-userdebug

@@ -28,11 +28,9 @@ Release Date | June 2015
 * 1. Sync LineageOS 16.0 source.
 * 2. Copy `gtel3g.xml` from the gtel3g local manifests repository to `.repo/local_manifests/`.
 * 3. Run `repo sync` again.
-* 4. From the Android source root, apply the required source patches:
-  `device/samsung/gtel3g/apply-patches.sh`
-* 5. Set up the build environment:
+* 4. Set up the build environment; device source patches are applied automatically:
   `source build/envsetup.sh`
-* 6. Select the device:
+* 5. Select the device:
   `lunch lineage_gtel3g-userdebug`
-* 7. Build LineageOS:
+* 6. Build LineageOS:
   `mka bacon`

@@ -4,6 +4,9 @@ GTEL_RIL := false
 # Release name
 PRODUCT_RELEASE_NAME := gtelwifi
 
+# Android Go identifier
+PRODUCT_TYPE := go
+
 # Inherit some common Lineage stuff.
 $(call inherit-product, vendor/lineage/config/common_full_tablet_wifionly.mk)
 

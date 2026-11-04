@@ -19,7 +19,13 @@
 -include vendor/samsung/gtel3g/BoardConfigVendor.mk
 
 # Telephony / RIL
+ifneq ($(filter lineage_gtelwifi gtelwifi,$(TARGET_PRODUCT)),)
+GTEL_RIL := false
+endif
+
+ifneq ($(strip $(GTEL_RIL)),false)
 BOARD_PROVIDES_LIBRIL := true
+endif
 TARGET_SYSTEM_PROP += device/samsung/gtel3g/system.prop
 
 # Legacy proprietary service compatibility
@@ -27,17 +33,24 @@ TARGET_PROCESS_SDK_VERSION_OVERRIDE += \
     /system/vendor/bin/hw/android.hardware.camera.provider@2.4-service=22 \
     /system/vendor/bin/hw/android.hardware.media.omx@1.0-service=22
 
-# Device-specific VINTF and SELinux policy
+DEVICE_MANIFEST_FILE := device/samsung/scx35-common/configs/manifest.common.xml
 ifneq ($(strip $(GTEL_RIL)),false)
-DEVICE_MANIFEST_FILE += device/samsung/gtel3g/configs/manifest.xml
+DEVICE_MANIFEST_FILE += device/samsung/gtel3g/configs/manifest.radio.xml
 endif
 
 # Bootloader
 TARGET_BOOTLOADER_BOARD_NAME := SC7730SE
 
 # Partitions
+# 18.1 port: keep the 17.1 layout. The ramdisk carries the static first stage
+# init and fstab; init mounts SYSTEM and switches root to it. The root dir is
+# always staged into system.img, so the mount points only need extra folders.
+BOARD_ROOT_EXTRA_FOLDERS := efs productinfo
 BOARD_BOOTIMAGE_PARTITION_SIZE := 16777216
 BOARD_RECOVERYIMAGE_PARTITION_SIZE := 16777216
+BOARD_RAMDISK_USE_XZ := true
+AB_OTA_UPDATER := false
+TARGET_RECOVERY_FSTAB := device/samsung/gtel3g/recovery.fstab
 BOARD_SYSTEMIMAGE_PARTITION_SIZE := 1572864000
 BOARD_USERDATAIMAGE_PARTITION_SIZE := 5750390784
 BOARD_CACHEIMAGE_PARTITION_SIZE := 209715200
@@ -45,26 +58,14 @@ BOARD_CACHEIMAGE_FILE_SYSTEM_TYPE := ext4
 BOARD_FLASH_BLOCK_SIZE := 131072
 TARGET_USERIMAGES_USE_EXT4 := true
 
-# fstab.sc8830 mounts /efs and /productinfo, and fs_mgr does not create mount
-# points - the directory has to already exist or mount() returns ENOENT.
-# Neither is in the fixed list system/core/rootdir/Android.mk creates, so both
-# mounts have been failing since this tree was first built.
-BOARD_ROOT_EXTRA_FOLDERS := efs productinfo
-
 # Camera HAL1 hack
 TARGET_HAS_LEGACY_CAMERA_HAL1 := true
 
 # Legacy SPRD camera HAL compatibility
 TARGET_USES_SPRD_LEGACY_CAMERA_WRAPPER := true
 
-# Legacy SPRD gralloc camera buffer usage
-# 0x04000400 covers the display/GSP path. Video playback additionally needs
-# bit 13 (0x2000): the SurfaceView for video requests usage 0x2933, and the
-# Gralloc2 legacy mapper rejects any descriptor carrying a bit outside its
-# whitelist with "buffer descriptor contains invalid usage bits 0x2000" and then
-# fails the allocation with -EINVAL/-ENOMEM, so the decoder never gets an output
-# buffer and the screen stays black. The QCOM config (BoardConfigQcom.mk) adds
-# (1 << 13) for the same reason.
+# Legacy SPRD gralloc camera/display/video buffer usage
+# 0x04000000 (camera) + 0x00000400 (display bit 10) + 0x00002000 (video SurfaceView bit 13)
 TARGET_ADDITIONAL_GRALLOC_10_USAGE_BITS := 0x04002400
 
 # WiFi
@@ -82,9 +83,19 @@ WIFI_DRIVER_NVRAM_PATH_PARAM := "/sys/module/dhd/parameters/nvram_path"
 WIFI_DRIVER_NVRAM_PATH := "/vendor/etc/wifi/nvram_net.txt"
 TARGET_NEEDS_NETD_DIRECT_CONNECT_RULE := true
 
-# Kernel
+# Kernel 4.9 (eBPF-enabled)
+TARGET_PREBUILT_KERNEL := /mnt/android_kernel_samsung_sc7730se-4.9/out/zImage-dtb-gtelwifi
+BOARD_KERNEL_PREBUILT_DT := /mnt/zips-keep/dt.img
+TARGET_FORCE_PREBUILT_KERNEL := true
+BOARD_COPY_BOOT_IMAGE_TO_TARGET_FILES := true
+BOARD_KERNEL_CMDLINE := initcall_debug ignore_loglevel loglevel=8 panic=10 androidboot.hardware=sc8830 androidboot.selinux=permissive enforcing=0
 TARGET_KERNEL_CONFIG := gtel3g_defconfig
 TARGET_KERNEL_SOURCE := kernel/samsung/gtel3g
+
+# O kernel e' 3.10 com flags ARM que o clang nao conhece (-mapcs,
+# -mno-sched-prolog, -mno-thumb-interwork). Compilar com clang quebra em
+# scripts/mod/empty.o, entao forçamos o toolchain gcc.
+TARGET_KERNEL_CLANG_COMPILE := false
 
 # Resolution
 TARGET_SCREEN_HEIGHT := 1280
@@ -111,4 +122,15 @@ TARGET_LD_SHIM_LIBS += \
  	/system/vendor/lib/egl/libGLES_mali.so|libion_shim.so
 
 # Recovery
-TARGET_RECOVERY_FSTAB := device/samsung/gtel3g/rootdir/fstab.sc8830
+# TARGET_RECOVERY_FSTAB is set above to device/samsung/gtel3g/recovery.fstab
+
+# freeBuffer(size_t) gera assinatura diferente da que o libbinder.arm32.map
+# exige (PKyj vs PKjj), quebrando o link do libbinder. O aviso de
+# -Wint-to-void-pointer-cast no host foi resolvido com -Wno-error no
+# Android.bp do libbinder.
+
+# O device e' A-only: nao existe /vendor nem ramdisk de modulos, entao o
+# staging de vendor (depmod_vendor) nao tem o que processar e falha com
+# "could not open modules.order". Desligamos o strip de modulos vendor e ramdisk.
+BOARD_DO_NOT_STRIP_VENDOR_MODULES := true
+BOARD_DO_NOT_STRIP_VENDOR_RAMDISK_MODULES := true

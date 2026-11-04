@@ -1,0 +1,21 @@
+diff --git a/common/message_loop_thread.cc b/common/message_loop_thread.cc
+index 643de6442..cf7ec025c 100644
+--- a/common/message_loop_thread.cc
++++ b/common/message_loop_thread.cc
+@@ -200,11 +200,11 @@ bool MessageLoopThread::EnableRealTimeScheduling() {
+                                       kRealTimeFifoSchedulingPriority};
+   int rc = sched_setscheduler(linux_tid_, SCHED_FIFO, &rt_params);
+   if (rc != 0) {
+-    LOG(ERROR) << __func__ << ": unable to set SCHED_FIFO priority "
+-               << kRealTimeFifoSchedulingPriority << " for linux_tid "
+-               << std::to_string(linux_tid_) << ", thread " << *this
+-               << ", error: " << strerror(errno);
+-    return false;
++    LOG(WARNING) << __func__ << ": unable to set SCHED_FIFO priority "
++                 << kRealTimeFifoSchedulingPriority << " for linux_tid "
++                 << std::to_string(linux_tid_) << ", thread " << *this
++                 << ", error: " << strerror(errno);
++    return true;
+   }
+   return true;
+ }

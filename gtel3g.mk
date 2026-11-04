@@ -21,17 +21,19 @@ GTEL_RIL ?= true
 
 # Telephony base
 ifeq ($(GTEL_RIL),true)
-$(call inherit-product, $(SRC_TARGET_DIR)/product/full_base_telephony.mk)
-else
-# full_base_telephony.mk minus telephony.mk.  telephony.mk pulls in
-# telephony_vendor.mk, which is what puts rild in PRODUCT_PACKAGES, and
-# hardware/ril/rild/Android.mk:36 gives rild a LOCAL_INIT_RC of
-# rild.legacy.rc -- so leaving rild in would install
-# /vendor/etc/init/rild.legacy.rc and start service ril-daemon no matter how
-# many PRODUCT_COPY_FILES we drop.
+ifeq ($(PRODUCT_TYPE),go)
 $(call inherit-product, $(SRC_TARGET_DIR)/product/aosp_base.mk)
+$(call inherit-product, $(SRC_TARGET_DIR)/product/telephony.mk)
+PRODUCT_PROPERTY_OVERRIDES += keyguard.no_require_sim=true
+else
+$(call inherit-product, $(SRC_TARGET_DIR)/product/full_base_telephony.mk)
+endif
+else
+$(call inherit-product, $(SRC_TARGET_DIR)/product/aosp_base.mk)
+ifneq ($(PRODUCT_TYPE),go)
 PRODUCT_COPY_FILES += \
 	frameworks/native/data/etc/handheld_core_hardware.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/handheld_core_hardware.xml
+endif
 endif
 
 # Overlays
@@ -89,9 +91,7 @@ PRODUCT_COPY_FILES += \
 
 else
 
-# No modem.  Note that none of the vendor/etc/init/*.rc files above are
-# installed, so rild, modemd, modem_control, phoneserver, nvitemd, engpc,
-# at_distributor and refnotify simply do not exist as init services.
+# No modem
 PRODUCT_PROPERTY_OVERRIDES += \
 	ro.radio.noril=1 \
 	ro.carrier=wifi-only \
@@ -121,27 +121,18 @@ PRODUCT_PROPERTY_OVERRIDES += \
 	media.stagefright.legacyencoder=true \
 	media.stagefright.less-secure=true
 
-# Display: the Spreadtrum GSP composition engine wedges on this SoC (busy bit
-# stays set with the clock at 256MHz, errcode=0, and the IRQ clear does not
-# recover it), which makes hwcomposer fall back to software and cost ~720ms per
-# The static-screen bug is fixed at the source (pm-scx35.c: bit 8 of
-# REG_AP_AHB_AP_SYS_AUTO_SLEEP_CFG is now kept set across suspend/resume), so the
-# GSP compositing path is functional and these two workarounds are no longer
-# needed. Leaving them on forces the GSP out of the path entirely, which costs
-# hardware composition and makes animations visibly sluggish.
-# PRODUCT_PROPERTY_OVERRIDES += \
-# 	persist.vendor.debug.hwc.disable=1 \
-# 	debug.sf.disable_hwc_overlays=1
-
 # Camera
 PRODUCT_PACKAGES += \
 	Snap \
 	camera.sc8830 \
+	libexif \
 	libmemoryheapion_sprd_legacy
 
 # Sensors
 PRODUCT_PACKAGES += \
 	sensors.sc8830
+
+# 18.1 port: generic bcmdhd overlays shadow the board ones; dropped.
 
 # Set those variables here to overwrite the inherited values.
 PRODUCT_NAME := full_gtel3g
@@ -161,10 +152,10 @@ endif
 PRODUCT_PACKAGES += \
     fstab.sc8830
 
-# First stage init reads the fstab from the boot ramdisk before SYSTEM is mounted.
+# 18.1 port: first stage init reads the fstab from the boot ramdisk before
+# SYSTEM is mounted. The root copy above serves the second stage.
 PRODUCT_COPY_FILES += \
     device/samsung/gtel3g/rootdir/fstab.sc8830:$(TARGET_COPY_OUT_RAMDISK)/fstab.sc8830
 
-# SPRD offline charger
-PRODUCT_PACKAGES += \
-    sprd_charger
+# SPRD offline charger (disabled in 19.1/22.2)
+# PRODUCT_PACKAGES += sprd_charger

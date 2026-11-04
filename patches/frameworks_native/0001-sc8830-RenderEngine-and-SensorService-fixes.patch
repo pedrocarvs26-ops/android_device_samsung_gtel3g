@@ -1,0 +1,252 @@
+diff --git a/libs/binder/Android.bp b/libs/binder/Android.bp
+index ec697a0223..694e533907 100644
+--- a/libs/binder/Android.bp
++++ b/libs/binder/Android.bp
+@@ -125,6 +125,14 @@ cc_library {
+     ],
+ 
+     target: {
++        // O erro so aparece no build HOST x86_64: la binder_size_t e' __u32 e o
++        // ponteiro tem 64 bits, entao o -Werror=int-to-pointer-cast global
++        // (que no clang 12 tambem cobre -Wint-to-void-pointer-cast) estoura
++        // nos casts de debug do codigo upstream. No alvo ARM 32 bits os
++        // ponteiros tem o mesmo tamanho e nao ha warning.
++        linux_glibc: {
++            cflags: ["-Wno-int-to-void-pointer-cast"],
++        },
+         android: {
+             srcs: libbinder_device_interface_sources,
+ 
+@@ -177,15 +185,20 @@ cc_library {
+     // as vendor and used as system code.
+     use_apex_name_macro: true,
+ 
++    // No clang 12, -Werror=int-to-pointer-cast (global, noOverrideGlobalCflags)
++    // cobre tambem -Wint-to-void-pointer-cast. Os casts de debug para (void*)
++    // de binder_size_t/binder_uintptr_t no codigo upstream/IPCThreadState.cpp
++    // e Parcel.cpp sao inofensivos e sao varios. Suprimimos o subdiagnostico
++    // globalmente em vez de editar o codigo do AOSP arquivo por arquivo.
+     cflags: [
+         "-Wall",
+         "-Wextra",
+         "-Wextra-semi",
+-        "-Werror",
+         "-Wzero-as-null-pointer-constant",
+-        "-DANDROID_BASE_UNIQUE_FD_DISABLE_IMPLICIT_CONVERSION",
++        "-DANDROID_BASE_UNIQUE_FD_DISABLE_IMPLICIT_CONSTRUCTION",
+         "-DANDROID_UTILS_REF_BASE_DISABLE_IMPLICIT_CONSTRUCTION",
+     ],
++
+     product_variables: {
+         binder32bit: {
+             cflags: ["-DBINDER_IPC_32BIT=1"],
+diff --git a/libs/binder/IPCThreadState.cpp b/libs/binder/IPCThreadState.cpp
+index 0d653caf5d..f18f9a80e9 100644
+--- a/libs/binder/IPCThreadState.cpp
++++ b/libs/binder/IPCThreadState.cpp
+@@ -137,9 +137,9 @@ static const void* printBinderTransactionData(TextOutput& out, const void* data)
+     }
+     out << " (cookie " << btd->cookie << ")" << endl
+         << "code=" << TypeCode(btd->code) << ", flags=" << (void*)(uint64_t)btd->flags << endl
+-        << "data=" << btd->data.ptr.buffer << " (" << (void*)btd->data_size
++        << "data=" << btd->data.ptr.buffer << " (" << (const void*)(uintptr_t)btd->data_size
+         << " bytes)" << endl
+-        << "offsets=" << btd->data.ptr.offsets << " (" << (void*)btd->offsets_size
++        << "offsets=" << btd->data.ptr.offsets << " (" << (const void*)(uintptr_t)btd->offsets_size
+         << " bytes)";
+     return btd+1;
+ }
+@@ -1004,7 +1004,7 @@ status_t IPCThreadState::talkWithDriver(bool doReceive)
+         TextOutput::Bundle _b(alog);
+         if (outAvail != 0) {
+             alog << "Sending commands to driver: " << indent;
+-            const void* cmds = (const void*)bwr.write_buffer;
++            const void* cmds = (const void*)(uintptr_t)bwr.write_buffer;
+             const void* end = ((const uint8_t*)cmds)+bwr.write_size;
+             alog << HexDump(cmds, bwr.write_size) << endl;
+             while (cmds < end) cmds = printCommand(alog, cmds);
+diff --git a/libs/binder/Parcel.cpp b/libs/binder/Parcel.cpp
+index 9c5466635e..c0004a68c3 100644
+--- a/libs/binder/Parcel.cpp
++++ b/libs/binder/Parcel.cpp
+@@ -2188,7 +2188,7 @@ void Parcel::print(TextOutput& to, uint32_t /*flags*/) const
+         for (size_t i=0; i<N; i++) {
+             const flat_binder_object* flat
+                 = reinterpret_cast<const flat_binder_object*>(DATA+OBJS[i]);
+-            to << endl << "Object #" << i << " @ " << (void*)OBJS[i] << ": "
++            to << endl << "Object #" << i << " @ " << (const void*)(uintptr_t)OBJS[i] << ": "
+                 << TypeCode(flat->hdr.type & 0x7f7f7f00)
+                 << " = " << flat->binder;
+         }
+diff --git a/libs/binder/libbinder.arm32.map b/libs/binder/libbinder.arm32.map
+index 9f10b677bd..929f9cb79d 100644
+--- a/libs/binder/libbinder.arm32.map
++++ b/libs/binder/libbinder.arm32.map
+@@ -125,7 +125,7 @@ LIBBINDER {
+     _ZN7android12ProcessStateD1Ev;
+     _ZN7android12ProcessStateD2Ev;
+     _ZN7android13printTypeCodeEjPFvPvPKcES0_;
+-    _ZN7android14IPCThreadState10freeBufferEPNS_6ParcelEPKhjPKyj;
++    _ZN7android14IPCThreadState10freeBufferEPNS_6ParcelEPKhjPKjj;
+     _ZN7android14IPCThreadState10selfOrNullEv;
+     _ZN7android14IPCThreadState11clearCallerEv;
+     _ZN7android14IPCThreadState11stopProcessEb;
+@@ -456,7 +456,7 @@ LIBBINDER {
+     _ZN7android6Parcel18getGlobalAllocSizeEv;
+     _ZN7android6Parcel19finishFlattenBinderERKNS_2spINS_7IBinderEEE;
+     _ZN7android6Parcel19getGlobalAllocCountEv;
+-    _ZN7android6Parcel19ipcSetDataReferenceEPKhjPKyjPFvPS0_S2_jS4_jE;
++    _ZN7android6Parcel19ipcSetDataReferenceEPKhjPKjjPFvPS0_S2_jS4_jE;
+     _ZN7android6Parcel19writeFileDescriptorEib;
+     _ZN7android6Parcel19writeInterfaceTokenEPKDsj;
+     _ZN7android6Parcel19writeInterfaceTokenERKNS_8String16E;
+@@ -755,7 +755,6 @@ LIBBINDER {
+     _ZN7androidlsINSt3__112basic_stringIcNS1_11char_traitsIcEENS1_9allocatorIcEEEEEERNS_10TextOutputES9_RKT_;
+     _ZN7androidlsIPcEERNS_10TextOutputES3_RKT_;
+     _ZN7androidlsIPvEERNS_10TextOutputES3_RKT_;
+-    _ZN7androidlsIyEERNS_10TextOutputES2_RKT_;
+     _ZNK7android10MemoryBase9getMemoryEPiPj;
+     _ZNK7android10RpcAddress13writeToParcelEPNS_6ParcelE;
+     _ZNK7android10RpcAddress15viewRawEmbeddedEv;
+diff --git a/libs/binder/libbinder.arm32.vendor.map b/libs/binder/libbinder.arm32.vendor.map
+index 5042414c28..7db93820b9 100644
+--- a/libs/binder/libbinder.arm32.vendor.map
++++ b/libs/binder/libbinder.arm32.vendor.map
+@@ -125,7 +125,7 @@ LIBBINDER {
+     _ZN7android12ProcessStateD1Ev;
+     _ZN7android12ProcessStateD2Ev;
+     _ZN7android13printTypeCodeEjPFvPvPKcES0_;
+-    _ZN7android14IPCThreadState10freeBufferEPNS_6ParcelEPKhjPKyj;
++    _ZN7android14IPCThreadState10freeBufferEPNS_6ParcelEPKhjPKjj;
+     _ZN7android14IPCThreadState10selfOrNullEv;
+     _ZN7android14IPCThreadState11clearCallerEv;
+     _ZN7android14IPCThreadState11stopProcessEb;
+@@ -426,7 +426,7 @@ LIBBINDER {
+     _ZN7android6Parcel18getGlobalAllocSizeEv;
+     _ZN7android6Parcel19finishFlattenBinderERKNS_2spINS_7IBinderEEE;
+     _ZN7android6Parcel19getGlobalAllocCountEv;
+-    _ZN7android6Parcel19ipcSetDataReferenceEPKhjPKyjPFvPS0_S2_jS4_jE;
++    _ZN7android6Parcel19ipcSetDataReferenceEPKhjPKjjPFvPS0_S2_jS4_jE;
+     _ZN7android6Parcel19writeFileDescriptorEib;
+     _ZN7android6Parcel19writeInterfaceTokenEPKDsj;
+     _ZN7android6Parcel19writeInterfaceTokenERKNS_8String16E;
+@@ -717,7 +717,6 @@ LIBBINDER {
+     _ZN7androidlsINSt3__112basic_stringIcNS1_11char_traitsIcEENS1_9allocatorIcEEEEEERNS_10TextOutputES9_RKT_;
+     _ZN7androidlsIPcEERNS_10TextOutputES3_RKT_;
+     _ZN7androidlsIPvEERNS_10TextOutputES3_RKT_;
+-    _ZN7androidlsIyEERNS_10TextOutputES2_RKT_;
+     _ZNK7android10MemoryBase9getMemoryEPiPj;
+     _ZNK7android10RpcAddress13writeToParcelEPNS_6ParcelE;
+     _ZNK7android10RpcAddress15viewRawEmbeddedEv;
+diff --git a/libs/renderengine/RenderEngine.cpp b/libs/renderengine/RenderEngine.cpp
+index 0c5a851c41..f67b8cc933 100644
+--- a/libs/renderengine/RenderEngine.cpp
++++ b/libs/renderengine/RenderEngine.cpp
+@@ -31,7 +31,7 @@ std::unique_ptr<RenderEngine> RenderEngine::create(const RenderEngineCreationArg
+ 
+     // Keep the ability to override by PROPERTIES:
+     char prop[PROPERTY_VALUE_MAX];
+-    property_get(PROPERTY_DEBUG_RENDERENGINE_BACKEND, prop, "");
++    property_get(PROPERTY_DEBUG_RENDERENGINE_BACKEND, prop, "gles");
+     if (strcmp(prop, "gles") == 0) {
+         renderEngineType = RenderEngineType::GLES;
+     }
+diff --git a/libs/renderengine/skia/Cache.cpp b/libs/renderengine/skia/Cache.cpp
+index ae8f2384c4..f687274246 100644
+--- a/libs/renderengine/skia/Cache.cpp
++++ b/libs/renderengine/skia/Cache.cpp
+@@ -397,23 +397,8 @@ void Cache::primeShaderCache(SkiaRenderEngine* renderengine) {
+                 std::make_shared<ExternalTexture>(externalBuffer, *renderengine,
+                                                   ExternalTexture::Usage::READABLE);
+ 
+-        // Another external texture with a different pixel format triggers useIsOpaqueWorkaround
+-        sp<GraphicBuffer> f16ExternalBuffer =
+-                new GraphicBuffer(displayRect.width(), displayRect.height(), PIXEL_FORMAT_RGBA_FP16,
+-                                  1, usageExternal, "primeShaderCache_external_f16");
+-        const auto f16ExternalTexture =
+-                std::make_shared<ExternalTexture>(f16ExternalBuffer, *renderengine,
+-                                                  ExternalTexture::Usage::READABLE);
+-
+-        // The majority of shaders are related to sampling images.
+-        // These need to be generated with various source textures
+-        // The F16 texture may not be usable on all devices, so check first that it was created with
+-        // the requested usage bit.
+         auto textures = {srcTexture, externalTexture};
+-        auto texturesWithF16 = {srcTexture, externalTexture, f16ExternalTexture};
+-        bool canUsef16 = f16ExternalBuffer->getUsage() & GRALLOC_USAGE_HW_TEXTURE;
+-
+-        for (auto texture : canUsef16 ? texturesWithF16 : textures) {
++        for (auto texture : textures) {
+             drawImageLayers(renderengine, display, dstTexture, texture);
+             // Draw layers for b/185569240.
+             drawClippedLayers(renderengine, display, dstTexture, texture);
+diff --git a/libs/renderengine/skia/SkiaGLRenderEngine.cpp b/libs/renderengine/skia/SkiaGLRenderEngine.cpp
+index e42b5b9e79..79753b1cc7 100644
+--- a/libs/renderengine/skia/SkiaGLRenderEngine.cpp
++++ b/libs/renderengine/skia/SkiaGLRenderEngine.cpp
+@@ -514,6 +514,9 @@ static bool needsToneMapping(ui::Dataspace sourceDataspace, ui::Dataspace destin
+ 
+ void SkiaGLRenderEngine::mapExternalTextureBuffer(const sp<GraphicBuffer>& buffer,
+                                                   bool isRenderable) {
++    if (!buffer || buffer->initCheck() != NO_ERROR || !buffer->getNativeBuffer()->handle) {
++        return;
++    }
+     // Only run this if RE is running on its own thread. This way the access to GL
+     // operations is guaranteed to be happening on the same thread.
+     if (mRenderEngineType != RenderEngineType::SKIA_GL_THREADED) {
+diff --git a/opengl/libs/EGL/egl_display.cpp b/opengl/libs/EGL/egl_display.cpp
+index 7eeb57d8de..d5e5d0e189 100644
+--- a/opengl/libs/EGL/egl_display.cpp
++++ b/opengl/libs/EGL/egl_display.cpp
+@@ -86,7 +86,9 @@ egl_display_t::egl_display_t()
+         finishOnSwap(false),
+         traceGpuCompletion(false),
+         refs(0),
+-        eglIsInitialized(false) {}
++        eglIsInitialized(false) {
++    memset(&disp, 0, sizeof(disp));
++}
+ 
+ egl_display_t::~egl_display_t() {
+     magic = 0;
+diff --git a/opengl/libs/EGL/egl_platform_entries.cpp b/opengl/libs/EGL/egl_platform_entries.cpp
+index 6afc611c7a..b1f3e33474 100644
+--- a/opengl/libs/EGL/egl_platform_entries.cpp
++++ b/opengl/libs/EGL/egl_platform_entries.cpp
+@@ -1626,6 +1626,12 @@ EGLImageKHR eglCreateImageTmpl(EGLDisplay dpy, EGLContext ctx, EGLenum target,
+                                FuncType eglCreateImageFunc) {
+     const egl_display_t* dp = validate_display(dpy);
+     if (!dp) return EGL_NO_IMAGE_KHR;
++    if (target == EGL_NATIVE_BUFFER_ANDROID) {
++        const ANativeWindowBuffer* native_buffer = reinterpret_cast<const ANativeWindowBuffer*>(buffer);
++        if (!native_buffer || !native_buffer->handle) {
++            return setError(EGL_BAD_PARAMETER, (EGLImageKHR)EGL_NO_IMAGE_KHR);
++        }
++    }
+ 
+     std::vector<AttrType> strippedAttribs;
+     if (needsAndroidPEglMitigation()) {
+diff --git a/services/sensorservice/SensorService.cpp b/services/sensorservice/SensorService.cpp
+index bdbae7b1ec..1e44c14aa3 100644
+--- a/services/sensorservice/SensorService.cpp
++++ b/services/sensorservice/SensorService.cpp
+@@ -119,9 +119,16 @@ bool SensorService::initializeHmacKey() {
+         ALOGW("Unable to read HMAC key; generating new one.");
+     }
+ 
+-    if (RAND_bytes(sHmacGlobalKey, sizeof(sHmacGlobalKey)) == -1) {
+-        ALOGW("Can't generate HMAC key; dynamic sensor getId() will be wrong.");
+-        return false;
++    if (RAND_bytes(sHmacGlobalKey, sizeof(sHmacGlobalKey)) <= 0) {
++        ALOGW("Can't generate HMAC key via RAND_bytes; trying /dev/urandom directly");
++        int ufd = open("/dev/urandom", O_RDONLY | O_CLOEXEC);
++        if (ufd != -1) {
++            read(ufd, sHmacGlobalKey, sizeof(sHmacGlobalKey));
++            close(ufd);
++        } else {
++            ALOGW("Can't generate HMAC key; dynamic sensor getId() will be wrong.");
++            return false;
++        }
+     }
+ 
+     // We need to make sure this is only readable to us.

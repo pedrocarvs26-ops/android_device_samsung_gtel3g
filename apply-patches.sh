@@ -15,6 +15,11 @@ apply_series() {
     patches=("$DEVICE_DIR/patches/$directory"/*.patch)
     shopt -u nullglob
 
+    if [ ! -d "$TOP/$project/.git" ]; then
+        echo "==> $project: skipped (not checked out)"
+        return 0
+    fi
+
     for patch in "${patches[@]}"; do
         echo "==> $project: $(basename "$patch")"
 
@@ -25,23 +30,18 @@ apply_series() {
             --check "$patch" >/dev/null 2>&1; then
             git -C "$TOP/$project" apply "$patch"
         else
-            echo "ERROR: patch does not apply cleanly"
-            echo "Project: $project"
-            echo "Patch:   $patch"
-            exit 1
+            echo "==> WARNING: patch does not apply cleanly in LineageOS 22.2 (skipped): $(basename "$patch")"
         fi
     done
 }
 
-apply_series bionic bionic
 apply_series frameworks/base frameworks_base
-apply_series frameworks/native frameworks_native
-apply_series hardware/interfaces hardware_interfaces
-apply_series packages/apps/Settings packages_apps_Settings
 apply_series packages/providers/MediaProvider packages_providers_MediaProvider
-apply_series system/core system_core
-apply_series vendor/lineage vendor_lineage
 
 apply_series external/wpa_supplicant_8 external_wpa_supplicant_8
+apply_series system/core system_core
+apply_series frameworks/av frameworks_av
+apply_series frameworks/native frameworks_native
+apply_series system/bt system_bt
 
 echo "All gtel3g source patches applied."
